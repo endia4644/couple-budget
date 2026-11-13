@@ -230,7 +230,11 @@
     if (!window.BUDGET_API) return Promise.reject(new Error('config.js 에 BUDGET_API 주소가 없어요'));
     return fetch(window.BUDGET_API, { method: 'POST', redirect: 'follow',
       headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(req) })
-      .then(function (r) { return r.json(); }, function () { throw new Error('인터넷 연결을 확인해 주세요'); })
+      .then(function (r) { return r.json(); }, function () {
+        if (navigator.onLine === false) throw new Error('인터넷 연결을 확인해 주세요');
+        throw new Error('구글 시트에 연결하지 못했어요. Apps Script 배포 설정에서 ① 액세스 권한이 "모든 사용자"인지 ② 앱용 Code.gs를 붙여넣고 "새 버전"으로 배포했는지 확인해 주세요');
+      })
+      .then(function (d) { return d; }, function (e) { if (e instanceof SyntaxError) throw new Error('구글 쪽 응답이 이상해요. 앱용 Code.gs(doPost 있는 버전)를 붙여넣고 "새 버전"으로 배포해 주세요'); throw e; })
       .then(function (d) { if (d && d.error) throw new Error(d.error); return d; });
   }
   function showErr(msg, fatal) {

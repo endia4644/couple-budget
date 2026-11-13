@@ -1,6 +1,6 @@
 // 앱 화면 파일을 저장해 두었다가 빠르게 띄운다. 새 버전이 있으면 받아서 다음 실행 때 반영.
 // 지출 기록(구글 쪽 주소)은 저장하지 않는다 — 항상 새로 받는다.
-const CACHE = 'budget-v1';
+const CACHE = 'budget-v2';
 const SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
