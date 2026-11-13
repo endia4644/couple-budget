@@ -1,6 +1,6 @@
 // 화면(html·config)은 항상 새로 받고, 인터넷이 없을 때만 저장본을 쓴다.
 // 아이콘·manifest 는 저장본을 먼저 쓴다. 지출 기록(구글 주소)은 건드리지 않는다.
-const CACHE = 'budget-v3';
+const CACHE = 'budget-v4';
 const SHELL = ['./', 'index.html', 'config.js', 'manifest.webmanifest', 'icon-192.png', 'icon-512.png', 'apple-touch-icon.png'];
 
 self.addEventListener('install', e => {
