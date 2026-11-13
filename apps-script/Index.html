@@ -1,0 +1,486 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<base target="_top">
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="default">
+<meta name="apple-mobile-web-app-title" content="가계부">
+<link rel="manifest" href="manifest.webmanifest">
+<link rel="apple-touch-icon" href="apple-touch-icon.png">
+<link rel="icon" type="image/png" href="icon-192.png">
+<script src="config.js"></script>
+<meta name="theme-color" content="#f4f5f7">
+<title>우리 가계부</title>
+<style>
+  :root {
+    --bg: #f4f5f7; --card: #fff; --ink: #111827; --sub: #6b7280; --faint: #9ca3af; --line: #e5e7eb;
+    --accent: #2563eb; --dark: #1f2937;
+    --p0: #2563eb; --p1: #db2777; --ok: #059669;
+    --c0: #f97316; --c1: #eab308; --c2: #8b5cf6; --c3: #64748b;   /* 식비 · 간식 · 쇼핑 · 기타 */
+    --r: 18px;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; -webkit-tap-highlight-color: transparent; }
+  html, body { background: var(--bg); color: var(--ink); }
+  body { font-family: -apple-system, BlinkMacSystemFont, 'Apple SD Gothic Neo', 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+         font-size: 15px; line-height: 1.45; word-break: keep-all; padding-bottom: 48px; }
+  button, input { font: inherit; color: inherit; }
+  button { cursor: pointer; border: 0; background: none; }
+  .wrap { max-width: 480px; margin: 0 auto; padding: 0 16px; }
+  .hidden { display: none !important; }
+  .card { background: var(--card); border-radius: var(--r); padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 2px rgba(0,0,0,.04); }
+  .sec { font-size: 13px; font-weight: 700; color: var(--sub); margin: 22px 4px 8px; }
+
+  /* ── 맨 위: 날짜 ── */
+  .top { position: sticky; top: 0; z-index: 5; background: var(--bg); padding: calc(12px + env(safe-area-inset-top)) 0 10px; }
+  .topline { display: flex; justify-content: space-between; align-items: center; font-size: 13px; color: var(--sub); padding: 0 2px 6px; }
+  .me { font-size: 13px; color: var(--sub); padding: 5px 10px; border-radius: 99px; background: var(--card); border: 1px solid var(--line); }
+  .me b { color: var(--ink); }
+  .datebar { display: flex; align-items: center; justify-content: space-between; }
+  .datebar .nav { width: 44px; height: 44px; border-radius: 99px; background: var(--card); font-size: 22px; color: var(--sub); box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .datebar .nav:disabled { opacity: .35; }
+  .datebar .mid { text-align: center; position: relative; }
+  .datebar .d { font-size: 24px; font-weight: 800; letter-spacing: -.02em; }
+  .datebar .w { font-size: 14px; color: var(--sub); font-weight: 600; }
+  .datebar input { position: absolute; inset: 0; opacity: 0; width: 100%; }
+  .datebtns { display: flex; justify-content: center; gap: 8px; margin-top: 8px; }
+  .pickbtn { position: relative; font-size: 13px; font-weight: 700; color: var(--ink); padding: 6px 12px; border-radius: 99px; background: var(--card); border: 1px solid var(--line); }
+  .pickbtn input { position: absolute; inset: 0; opacity: 0; width: 100%; height: 100%; }
+  .today-btn { font-size: 13px; font-weight: 700; color: var(--accent); padding: 6px 12px; border-radius: 99px; background: #dbeafe; }
+
+  /* ── 그날 요약 ── */
+  .daytotal { display: flex; align-items: baseline; justify-content: space-between; }
+  .daytotal .l { font-size: 14px; color: var(--sub); font-weight: 600; }
+  .daytotal .v { font-size: 30px; font-weight: 800; letter-spacing: -.02em; }
+  .tiles { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; margin-top: 12px; }
+  .tile { border-radius: 12px; padding: 9px 4px 8px; text-align: center; background: var(--bg); }
+  .tile .n { font-size: 12px; color: var(--sub); font-weight: 600; white-space: nowrap; }
+  .tile .a { font-size: 14px; font-weight: 800; margin-top: 2px; white-space: nowrap; }
+  .tile.zero .a { color: var(--faint); font-weight: 600; }
+  .tile i { display: block; width: 18px; height: 4px; border-radius: 99px; margin: 0 auto 5px; }
+  .whopaid { display: flex; gap: 14px; margin-top: 10px; font-size: 13px; color: var(--sub); }
+  .whopaid b { color: var(--ink); }
+
+  .list { margin-top: 12px; border-top: 1px solid var(--line); }
+  .item { display: flex; align-items: center; gap: 10px; padding: 12px 0; border-bottom: 1px solid var(--line); }
+  .item:last-child { border-bottom: 0; padding-bottom: 2px; }
+  .bar { width: 4px; align-self: stretch; border-radius: 99px; flex: none; }
+  .item .mid { flex: 1; min-width: 0; }
+  .item .t { font-weight: 700; }
+  .item .t .who { display: inline-block; font-size: 11px; font-weight: 700; color: #fff; border-radius: 6px; padding: 1px 6px; margin-left: 6px; vertical-align: 2px; }
+  .item .s { font-size: 12px; color: var(--sub); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .item .a { font-weight: 800; white-space: nowrap; font-size: 16px; }
+  .item .x { color: #c0c4cc; font-size: 20px; padding: 4px 0 4px 8px; }
+  .item.settle .t { color: var(--ok); }
+  .empty { text-align: center; color: var(--faint); padding: 18px 0 6px; font-size: 14px; }
+
+  /* ── 입력 ── */
+  .addhd { font-size: 16px; font-weight: 800; margin-bottom: 8px; }
+  .addhd span { color: var(--accent); }
+  .amount { display: flex; align-items: baseline; gap: 6px; border-bottom: 2px solid var(--line); padding: 2px 0 6px; }
+  .amount:focus-within { border-color: var(--accent); }
+  .amount input { border: 0; outline: 0; width: 100%; font-size: 30px; font-weight: 800; letter-spacing: -.02em; background: none; }
+  .amount input::placeholder { color: #c7cbd1; }
+  .amount span { font-size: 18px; font-weight: 700; color: var(--sub); }
+  .label { font-size: 12px; color: var(--sub); font-weight: 600; margin: 14px 0 7px; }
+  .seg { display: grid; grid-auto-flow: column; grid-auto-columns: 1fr; background: var(--bg); border-radius: 12px; padding: 3px; }
+  .seg button { padding: 10px 0; border-radius: 10px; font-weight: 600; color: var(--sub); }
+  .seg button.on { background: var(--card); color: var(--ink); box-shadow: 0 1px 3px rgba(0,0,0,.12); }
+  .cats { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .cats button { padding: 10px 2px; border-radius: 12px; background: var(--bg); font-weight: 700; color: #374151; font-size: 13px; white-space: nowrap; letter-spacing: -.03em; border: 2px solid transparent; }
+  .cats button.on { background: #fff; }
+  .hint { font-size: 13px; color: var(--sub); margin-top: 8px; min-height: 19px; }
+  .hint b { color: var(--ink); }
+  .memo { width: 100%; margin-top: 14px; border: 1px solid var(--line); border-radius: 12px; padding: 11px 12px; background: #fff; }
+  .save { width: 100%; margin-top: 12px; padding: 15px; border-radius: 14px; background: var(--accent); color: #fff; font-size: 16px; font-weight: 800; }
+  .save:disabled { opacity: .5; }
+  .err { margin-top: 10px; padding: 10px 12px; border-radius: 12px; background: #fef2f2; color: #b91c1c; font-size: 13px; font-weight: 600; }
+  .cats.need button { border-color: #fca5a5; }
+  .label.need { color: #dc2626; }
+
+  /* ── 정산 ── */
+  .bal { display: flex; align-items: center; justify-content: space-between; gap: 12px; background: var(--dark); color: #fff; }
+  .bal .who { font-size: 13px; opacity: .75; }
+  .bal .amt { font-size: 22px; font-weight: 800; }
+  .bal .zero { font-size: 16px; font-weight: 700; }
+  .bal button { background: #fff; color: var(--dark); font-weight: 700; font-size: 14px; padding: 10px 14px; border-radius: 12px; white-space: nowrap; }
+
+  /* ── 한 달 ── */
+  .mnav { display: flex; align-items: center; justify-content: space-between; margin: 22px 0 8px; }
+  .mnav b { font-size: 15px; }
+  .mnav button { width: 36px; height: 36px; border-radius: 99px; background: var(--card); font-size: 18px; color: var(--sub); box-shadow: 0 1px 2px rgba(0,0,0,.05); }
+  .mnav button:disabled { opacity: .35; }
+  .mtot { display: flex; justify-content: space-between; align-items: baseline; }
+  .mtot b { font-size: 22px; }
+  .two { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 12px; }
+  .two div { background: var(--bg); border-radius: 12px; padding: 10px 12px; font-size: 12px; color: var(--sub); }
+  .two div b { display: block; font-size: 16px; color: var(--ink); }
+  .mcats { margin-top: 12px; display: grid; gap: 8px; }
+  .mcat { display: grid; grid-template-columns: 92px 1fr auto; align-items: center; gap: 8px; font-size: 13px; }
+  .mcat .track { height: 8px; border-radius: 99px; background: var(--bg); overflow: hidden; }
+  .mcat .track i { display: block; height: 100%; border-radius: 99px; }
+  .mdays { margin-top: 14px; border-top: 1px solid var(--line); }
+  .mday { display: flex; justify-content: space-between; padding: 10px 2px; border-bottom: 1px solid var(--line); font-size: 14px; width: 100%; text-align: left; }
+  .mday:last-child { border-bottom: 0; }
+  .mday span small { color: var(--faint); margin-left: 6px; font-size: 12px; }
+  .mday b { font-weight: 700; }
+  .mday.cur { color: var(--accent); }
+
+  /* ── 잠금 · 모달 · 토스트 ── */
+  .lock { min-height: 92vh; display: flex; flex-direction: column; justify-content: center; gap: 14px; }
+  .lock h1 { font-size: 24px; font-weight: 800; }
+  .lock p { color: var(--sub); }
+  .lock input { font-size: 22px; letter-spacing: .3em; text-align: center; border: 1px solid var(--line); border-radius: 12px; padding: 12px; width: 100%; }
+  .lock .seg { background: #e5e7eb; }
+  .lock .seg button { padding: 12px 0; }
+  .sheet-bg { position: fixed; inset: 0; background: rgba(0,0,0,.4); display: flex; align-items: flex-end; justify-content: center; z-index: 10; }
+  .sheet { background: var(--card); width: 100%; max-width: 480px; border-radius: 20px 20px 0 0; padding: 20px 16px 28px; }
+  .sheet h2 { font-size: 18px; margin-bottom: 4px; }
+  .sheet p { color: var(--sub); font-size: 14px; }
+  .sheet .btns { display: grid; grid-template-columns: 1fr 2fr; gap: 8px; margin-top: 16px; }
+  .sheet .btns button { padding: 13px; border-radius: 12px; font-weight: 700; background: var(--bg); }
+  .sheet .btns button.go { background: var(--accent); color: #fff; }
+  .toast { position: fixed; left: 50%; bottom: 24px; transform: translateX(-50%); background: var(--dark); color: #fff; padding: 10px 16px; border-radius: 99px; font-size: 14px; z-index: 20; max-width: 90vw; }
+  .loading { text-align: center; color: var(--sub); padding: 40px 0; }
+</style>
+</head>
+<body>
+<div class="wrap">
+
+  <section id="lock" class="lock hidden">
+    <h1>우리 가계부</h1>
+    <p>둘이 정한 PIN을 넣고, 누구인지 골라 주세요.<br>이 휴대폰에서는 한 번만 하면 됩니다.</p>
+    <input id="pin" type="password" inputmode="numeric" autocomplete="off" placeholder="PIN">
+    <div class="seg" id="whoPick"></div>
+    <button class="save" id="enter">시작하기</button>
+  </section>
+
+  <section id="main" class="hidden">
+    <!-- 1. 날짜 -->
+    <div class="top">
+      <div class="topline"><span>우리 가계부</span><button class="me" id="meBtn"></button></div>
+      <div class="datebar">
+        <button class="nav" id="prevDay" aria-label="전날">‹</button>
+        <div class="mid">
+          <div class="d" id="dLabel"></div>
+          <div class="w" id="wLabel"></div>
+        </div>
+        <button class="nav" id="nextDay" aria-label="다음 날">›</button>
+      </div>
+      <div class="datebtns">
+        <label class="pickbtn">📅 날짜 고르기<input type="date" id="pick" aria-label="날짜 고르기"></label>
+        <button class="today-btn hidden" id="toToday">오늘로</button>
+      </div>
+    </div>
+
+    <!-- 2. 그날 지출 -->
+    <div class="card" id="day"></div>
+
+    <!-- 3. 입력 -->
+    <div class="card">
+      <div class="addhd" id="addHd"></div>
+      <div class="amount"><input id="amt" type="text" inputmode="numeric" placeholder="0" autocomplete="off"><span>원</span></div>
+      <div class="label">항목</div>
+      <div class="cats" id="cats"></div>
+      <div class="label">낸 사람</div>
+      <div class="seg" id="payer"></div>
+      <div class="label">나누기</div>
+      <div class="seg" id="split"></div>
+      <div class="hint" id="hint"></div>
+      <input class="memo" id="memo" type="text" placeholder="메모 (선택)" maxlength="100">
+      <button class="save" id="save">저장</button>
+      <div class="err hidden" id="err"></div>
+    </div>
+
+    <!-- 4. 정산 -->
+    <div class="sec">정산</div>
+    <div class="card bal" id="bal"></div>
+
+    <!-- 5. 한 달 -->
+    <div class="mnav"><button id="prevMonth" aria-label="이전 달">‹</button><b id="mLabel"></b><button id="nextMonth" aria-label="다음 달">›</button></div>
+    <div class="card" id="month"></div>
+  </section>
+
+  <div id="boot" class="loading">불러오는 중…</div>
+</div>
+
+<script>
+(function () {
+  function load(k) { try { return localStorage.getItem('cb_' + k); } catch (e) { return null; } }
+  function keep(k, v) { try { localStorage.setItem('cb_' + k, v); } catch (e) {} }
+
+  var S = { pin: load('pin'), me: load('me'), date: null, data: null,
+            payer: null, cat: null, split: '반반', busy: false };
+  var $ = function (id) { return document.getElementById(id); };
+  var won = function (n) { return Math.round(n).toLocaleString('ko-KR') + '원'; };
+  var josa = function (w, a, b) { var c = w.charCodeAt(w.length - 1) - 0xac00; return w + (c >= 0 && c % 28 ? a : b); };
+  var PCOL = ['var(--p0)', 'var(--p1)'];
+  var CCOL = ['var(--c0)', 'var(--c1)', 'var(--c2)', 'var(--c3)'];
+  var WD = ['일', '월', '화', '수', '목', '금', '토'];
+  function catColor(n) { var i = S.data.categories.indexOf(n); return i < 0 ? 'var(--c3)' : CCOL[i % 4]; }
+  function esc(s) { return String(s).replace(/[&<>"']/g, function (c) { return { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]; }); }
+
+  // 구글 시트 안에서 열리면 google.script.run, 설치한 앱이면 config.js 의 주소로 fetch
+  function send(req) {
+    if (window.google && google.script && google.script.run) {
+      return new Promise(function (ok, bad) { google.script.run.withSuccessHandler(ok).withFailureHandler(bad).api(req); });
+    }
+    if (!window.BUDGET_API) return Promise.reject(new Error('config.js 에 BUDGET_API 주소가 없어요'));
+    return fetch(window.BUDGET_API, { method: 'POST', redirect: 'follow',
+      headers: { 'Content-Type': 'text/plain;charset=utf-8' }, body: JSON.stringify(req) })
+      .then(function (r) { return r.json(); }, function () { throw new Error('인터넷 연결을 확인해 주세요'); })
+      .then(function (d) { if (d && d.error) throw new Error(d.error); return d; });
+  }
+  function showErr(msg, fatal) {
+    var e = $('err'); e.textContent = msg; e.classList.remove('hidden');
+    if (fatal) { $('boot').classList.add('hidden'); $('main').classList.remove('hidden'); $('lock').classList.add('hidden'); }
+    e.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+  function hideErr() { $('err').classList.add('hidden'); }
+  function toast(msg) {
+    var old = document.querySelector('.toast'); if (old) old.remove();
+    var t = document.createElement('div'); t.className = 'toast'; t.textContent = msg;
+    document.body.appendChild(t); setTimeout(function () { t.remove(); }, 2200);
+  }
+
+  function call(req, done) {
+    req.pin = S.pin; req.month = (S.date || '').slice(0, 7);
+    send(req)
+      .then(function (d) {
+        S.busy = false; S.data = d; if (!S.date) S.date = d.today;
+        if (!d.version || d.version < 4) return showErr('Code.gs가 예전 버전이에요. 새 Code.gs를 붙여넣고 [배포 관리 → 새 버전]으로 다시 배포해 주세요.', true);
+        try { render(); } catch (e) { return showErr('화면 오류: ' + e.message, true); }
+        hideErr(); if (done) done();
+      }, function (e) {
+        S.busy = false; if (S.data) render();
+        var m = (e && e.message) || String(e);
+        if (!S.data && !/PIN이 맞지/.test(m)) { $('boot').textContent = '불러오기 실패: ' + m; return; }
+        if (/PIN이 맞지/.test(m)) { keep('pin', ''); S.pin = ''; showLock(m); } else showErr('저장/불러오기 실패: ' + m);
+      });
+  }
+
+  // ───── 날짜 이동 ─────
+  function addDays(ds, k) {
+    var t = new Date(ds + 'T00:00:00'); t.setDate(t.getDate() + k);
+    return t.getFullYear() + '-' + String(t.getMonth() + 1).padStart(2, '0') + '-' + String(t.getDate()).padStart(2, '0');
+  }
+  function goDate(ds) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(ds)) return;
+    if (ds > S.data.today) ds = S.data.today;
+    var sameMonth = ds.slice(0, 7) === S.data.month;
+    S.date = ds;
+    if (sameMonth) render(); else call({ op: 'state' });
+  }
+  $('prevDay').onclick = function () { goDate(addDays(S.date, -1)); };
+  $('nextDay').onclick = function () { goDate(addDays(S.date, 1)); };
+  $('toToday').onclick = function () { goDate(S.data.today); };
+  $('pick').onchange = function () { goDate(this.value); };
+  function lastDay(ym) { var t = new Date(+ym.slice(0, 4), +ym.slice(5), 0); return ym + '-' + String(t.getDate()).padStart(2, '0'); }
+  function shiftMonth(k) {
+    var y = +S.data.month.slice(0, 4), m = +S.data.month.slice(5) - 1 + k;
+    y += Math.floor(m / 12); m = ((m % 12) + 12) % 12;
+    var ym = y + '-' + String(m + 1).padStart(2, '0');
+    goDate(ym === S.data.today.slice(0, 7) ? S.data.today : lastDay(ym));
+  }
+  $('prevMonth').onclick = function () { shiftMonth(-1); };
+  $('nextMonth').onclick = function () { shiftMonth(1); };
+
+  // ───── 잠금 ─────
+  function showLock(msg) {
+    $('boot').classList.add('hidden'); $('main').classList.add('hidden'); $('lock').classList.remove('hidden');
+    if (msg) toast(msg);
+    var people = (S.data && S.data.people) || ['정윤', '민서'];
+    var w = $('whoPick'); w.innerHTML = '';
+    people.forEach(function (p) {
+      var b = document.createElement('button'); b.textContent = '나는 ' + p;
+      if (S.me === p) b.className = 'on';
+      b.onclick = function () { S.me = p; showLock(); };
+      w.appendChild(b);
+    });
+  }
+  $('enter').onclick = function () {
+    var pin = $('pin').value.trim();
+    if (!pin) return toast('PIN을 넣어 주세요');
+    if (!S.me) return toast('누구인지 골라 주세요');
+    S.pin = pin; keep('pin', pin); keep('me', S.me);
+    $('lock').classList.add('hidden'); $('boot').classList.remove('hidden');
+    call({ op: 'state' });
+  };
+
+  // ───── 입력 ─────
+  $('amt').addEventListener('input', function () {
+    var d = this.value.replace(/[^\d]/g, '').slice(0, 9);
+    this.value = d ? Number(d).toLocaleString('ko-KR') : '';
+    renderHint();
+  });
+  function amountVal() { return Number($('amt').value.replace(/[^\d]/g, '')) || 0; }
+
+  $('save').onclick = function () {
+    var a = amountVal();
+    if (!a) { $('amt').focus(); return toast('금액을 넣어 주세요'); }
+    if (!S.cat) { $('cats').classList.add('need'); $('cats').previousElementSibling.classList.add('need'); $('cats').previousElementSibling.textContent = '항목 — 하나 골라 주세요'; $('cats').scrollIntoView({ behavior: 'smooth', block: 'center' }); return toast('항목을 골라 주세요'); }
+    if (S.busy) return;
+    S.busy = true; render();
+    call({ op: 'add', entry: { amount: a, payer: S.payer, category: S.cat, split: S.split, date: S.date, memo: $('memo').value } }, function () {
+      $('amt').value = ''; $('memo').value = ''; S.cat = null; render(); toast('저장했어요');
+    });
+  };
+  $('meBtn').onclick = function () {
+    var p = S.data.people; S.me = S.me === p[0] ? p[1] : p[0]; keep('me', S.me); S.payer = S.me; render();
+    toast('이 휴대폰은 이제 ' + S.me);
+  };
+
+  // ───── 그리기 ─────
+  function seg(el, list, cur, pick) {
+    el.innerHTML = '';
+    list.forEach(function (v) {
+      var b = document.createElement('button'); b.textContent = v;
+      if (v === cur) b.className = 'on';
+      b.onclick = function () { pick(v); };
+      el.appendChild(b);
+    });
+  }
+
+  function renderHint() {
+    var p = S.data.people, other = S.payer === p[0] ? p[1] : p[0], a = amountVal(), h = $('hint');
+    if (S.split === '반반') h.innerHTML = a ? josa(other, '이', '가') + ' 절반 <b>' + won(a / 2) + '</b>을 줘야 해요' : '둘이 같이 쓴 돈 → 절반씩';
+    else if (S.split === '상대 것') h.innerHTML = a ? josa(other, '이', '가') + ' 전부 <b>' + won(a) + '</b>을 줘야 해요' : josa(other, '이', '가') + ' 쓴 걸 대신 냈어요';
+    else h.textContent = '혼자 쓴 돈 → 기록만, 정산 없음';
+  }
+
+  function dayOf(ds) {
+    var found = null;
+    S.data.summary.days.forEach(function (d) { if (d.date === ds) found = d; });
+    return found || { date: ds, total: 0, cats: [], items: [] };
+  }
+  function md(ds) { return (+ds.slice(5, 7)) + '월 ' + (+ds.slice(8)) + '일'; }
+
+  function render() {
+    var d = S.data; if (!d) return;
+    var p = d.people;
+    if (p.indexOf(S.me) < 0) return showLock();
+    $('boot').classList.add('hidden'); $('lock').classList.add('hidden'); $('main').classList.remove('hidden');
+    if (!S.payer) S.payer = S.me;
+    $('meBtn').innerHTML = '나: <b>' + S.me + '</b> ⇄';
+
+    // 1. 날짜
+    var dt = new Date(S.date + 'T00:00:00'), isToday = S.date === d.today;
+    $('dLabel').textContent = md(S.date);
+    $('wLabel').textContent = WD[dt.getDay()] + '요일' + (isToday ? ' · 오늘' : (S.date === addDays(d.today, -1) ? ' · 어제' : ''));
+    $('pick').value = S.date; $('pick').max = d.today;
+    $('nextDay').disabled = isToday;
+    $('toToday').classList.toggle('hidden', isToday);
+
+    // 2. 그날 지출
+    var day = dayOf(S.date), byCat = {}, paid = {};
+    (day.cats || []).forEach(function (c) { byCat[c.name] = c.amount; });
+    p.forEach(function (x) { paid[x] = 0; });
+    day.items.forEach(function (it) { if (it.split !== '정산') paid[it.payer] = (paid[it.payer] || 0) + it.amount; });
+    var h = '<div class="daytotal"><span class="l">' + (isToday ? '오늘' : md(S.date)) + ' 쓴 돈</span><span class="v">' + won(day.total) + '</span></div><div class="tiles">';
+    d.categories.forEach(function (c) {
+      var a = byCat[c] || 0;
+      h += '<div class="tile' + (a ? '' : ' zero') + '"><i style="background:' + catColor(c) + '"></i><div class="n">' + esc(c) + '</div><div class="a">' + (a ? won(a) : '0') + '</div></div>';
+    });
+    h += '</div>';
+    if (day.total) h += '<div class="whopaid">' + p.map(function (x) { return x + ' 냄 <b>' + won(paid[x]) + '</b>'; }).join('') + '</div>';
+    $('day').innerHTML = h;
+    var list = document.createElement('div'); list.className = 'list';
+    if (!day.items.length) list.innerHTML = '<div class="empty">이 날은 아직 기록이 없어요</div>';
+    day.items.forEach(function (it) {
+      var settle = it.split === '정산', other = it.payer === p[0] ? p[1] : p[0];
+      var row = document.createElement('div'); row.className = 'item' + (settle ? ' settle' : '');
+      var sub = settle ? it.payer + ' → ' + other + ' 송금' : it.split + (it.memo ? ' · ' + it.memo : '');
+      row.innerHTML = '<div class="bar" style="background:' + (settle ? 'var(--ok)' : catColor(it.category)) + '"></div>'
+        + '<div class="mid"><div class="t">' + esc(settle ? '정산' : it.category) + '<span class="who" style="background:' + PCOL[p.indexOf(it.payer)] + '">' + esc(it.payer) + '</span></div><div class="s">' + esc(sub) + '</div></div>'
+        + '<div class="a">' + won(it.amount) + '</div>';
+      var x = document.createElement('button'); x.className = 'x'; x.textContent = '×'; x.setAttribute('aria-label', '지우기');
+      x.onclick = function () {
+        if (!confirm(won(it.amount) + ' (' + (settle ? '정산' : it.category) + ') 기록을 지울까요?')) return;
+        call({ op: 'delete', id: it.id }, function () { toast('지웠어요'); });
+      };
+      row.appendChild(x); list.appendChild(row);
+    });
+    $('day').appendChild(list);
+
+    // 3. 입력
+    $('addHd').innerHTML = '<span>' + (isToday ? '오늘' : md(S.date)) + '</span> 지출 추가';
+    var cb = $('cats'); cb.innerHTML = '';
+    d.categories.forEach(function (c) {
+      var b = document.createElement('button'); b.textContent = c;
+      if (c === S.cat) { b.className = 'on'; b.style.borderColor = catColor(c); b.style.color = catColor(c); }
+      b.onclick = function () { S.cat = S.cat === c ? null : c; $('cats').classList.remove('need'); var lb = $('cats').previousElementSibling; lb.classList.remove('need'); lb.textContent = '항목'; render(); };
+      cb.appendChild(b);
+    });
+    seg($('payer'), p, S.payer, function (v) { S.payer = v; render(); });
+    seg($('split'), ['반반', '내 것', '상대 것'], S.split, function (v) { S.split = v; render(); });
+    renderHint();
+    $('save').disabled = S.busy;
+    $('save').textContent = S.busy ? '저장 중…' : '저장';
+
+    // 4. 정산
+    var bal = d.balance, el = $('bal');
+    if (Math.abs(bal) < 1) {
+      el.innerHTML = '<div class="zero">줄 돈이 없어요 👍</div>';
+    } else {
+      var from = bal > 0 ? p[1] : p[0], to = bal > 0 ? p[0] : p[1], amt = Math.abs(bal);
+      el.innerHTML = '<div><div class="who">' + from + ' → ' + to + '</div><div class="amt">' + won(amt) + '</div></div>';
+      var sb = document.createElement('button'); sb.textContent = '정산했어요';
+      sb.onclick = function () { openSettle(from, to, amt); };
+      el.appendChild(sb);
+    }
+
+    // 5. 한 달
+    var s = d.summary, max = 1;
+    s.categories.forEach(function (c) { if (c.amount > max) max = c.amount; });
+    $('mLabel').textContent = +d.month.slice(0, 4) + '년 ' + (+d.month.slice(5)) + '월 전체';
+    $('nextMonth').disabled = d.month >= d.today.slice(0, 7);
+    var m = '<div class="mtot"><span style="color:var(--sub);font-size:14px">둘이 쓴 돈</span><b>' + won(s.total) + '</b></div><div class="two">';
+    p.forEach(function (x) { m += '<div>' + x + ' 실제 부담<b>' + won(s.share[x] || 0) + '</b>낸 돈 ' + won(s.paid[x] || 0) + '</div>'; });
+    m += '</div><div class="mcats">';
+    s.categories.forEach(function (c) {
+      m += '<div class="mcat"><span>' + esc(c.name) + '</span><div class="track"><i style="width:' + Math.max(4, c.amount / max * 100) + '%;background:' + catColor(c.name) + '"></i></div><b>' + won(c.amount) + '</b></div>';
+    });
+    m += '</div>';
+    if (!s.days.length) m = '<div class="empty">이 달에는 기록이 없어요</div>';
+    $('month').innerHTML = m;
+    if (s.days.length) {
+      var md_ = document.createElement('div'); md_.className = 'mdays';
+      s.days.forEach(function (x) {
+        var b = document.createElement('button'); b.className = 'mday' + (x.date === S.date ? ' cur' : '');
+        var t = new Date(x.date + 'T00:00:00');
+        b.innerHTML = '<span>' + md(x.date) + ' (' + WD[t.getDay()] + ')<small>' + x.items.length + '건</small></span><b>' + won(x.total) + '</b>';
+        b.onclick = function () { goDate(x.date); window.scrollTo({ top: 0, behavior: 'smooth' }); };
+        md_.appendChild(b);
+      });
+      $('month').appendChild(md_);
+    }
+  }
+
+  function openSettle(from, to, amt) {
+    var bg = document.createElement('div'); bg.className = 'sheet-bg';
+    bg.innerHTML = '<div class="sheet"><h2>' + from + ' → ' + to + ' 송금</h2>'
+      + '<p>실제로 보낸 금액을 넣어 주세요. 일부만 보내도 됩니다.</p>'
+      + '<div class="amount" style="margin-top:14px"><input type="text" inputmode="numeric" value="' + Math.round(amt).toLocaleString('ko-KR') + '"><span>원</span></div>'
+      + '<div class="btns"><button class="no">취소</button><button class="go">보냈어요</button></div></div>';
+    document.body.appendChild(bg);
+    var inp = bg.querySelector('input');
+    inp.oninput = function () { var v = inp.value.replace(/[^\d]/g, '').slice(0, 9); inp.value = v ? Number(v).toLocaleString('ko-KR') : ''; };
+    bg.querySelector('.no').onclick = function () { bg.remove(); };
+    bg.onclick = function (e) { if (e.target === bg) bg.remove(); };
+    bg.querySelector('.go').onclick = function () {
+      var v = Number(inp.value.replace(/[^\d]/g, ''));
+      if (!v) return toast('금액을 넣어 주세요');
+      bg.remove(); call({ op: 'settle', from: from, amount: v }, function () { toast('정산을 기록했어요'); });
+    };
+  }
+
+  if (S.pin && S.me) call({ op: 'state' }); else showLock();
+  if ('serviceWorker' in navigator && (location.protocol === 'https:' || location.hostname === 'localhost') && !/script\.google|googleusercontent/.test(location.host)) {
+    navigator.serviceWorker.register('sw.js').catch(function () {});
+  }
+})();
+</script>
+</body>
+</html>
